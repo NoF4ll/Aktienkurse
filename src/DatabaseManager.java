@@ -61,7 +61,7 @@ public class DatabaseManager {
 			statement.executeUpdate();
 		}
 	}
-
+	//Bessere 200er Schritt "berechnung" mit einem Select befehl
 	public static void selectAvg(String aktie, final Connection connection, ArrayList<Double> closeValue,
 			ArrayList<LocalDate> date) {
 		for (int i = 0; i < date.size(); i++) {

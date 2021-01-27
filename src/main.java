@@ -82,6 +82,7 @@ public class main extends Application {
 		System.out.println("Chart wurde erfolgreich gezeichnet!");
 	}
 
+	// Berechnung des 200er Schnittes (Wird jedoch nicht mehr verwendet)
 	static void avgClose() {
 		double firstValue;
 		double sum = 0;
