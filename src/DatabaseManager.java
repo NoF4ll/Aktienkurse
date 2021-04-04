@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.TreeMap;
 
 public class DatabaseManager {
 	private static DatabaseManager instance;
@@ -39,7 +40,7 @@ public class DatabaseManager {
 			statement.execute(createTable);
 			statement.executeUpdate();
 		}
-		final String insertInto = "insert ignore into " + aktie + " (Datum, close) values (?, ?)";
+		final String insertInto = "Replace into " + aktie + " (Datum, close) values (?, ?)";
 		try (PreparedStatement statement = connection.prepareStatement(insertInto)) {
 			statement.setString(1, date.toString());
 			statement.setDouble(2, closeValue);
@@ -97,5 +98,18 @@ public class DatabaseManager {
 			System.out.println(e.getMessage());
 		}
 	}
-
+	
+	public static void calculateSplit(String aktie, final Connection connection,TreeMap<LocalDate, Integer> splitCoeffecient)
+	{
+		for(LocalDate i : splitCoeffecient.keySet())
+		{
+			String selectSplit = "UPDATE "+aktie+" SET CLOSE = ( CLOSE / "+(double) splitCoeffecient.get(i)+" ) where datum <= ('"+ i+"')";
+			try {
+				Statement stmt = connection.createStatement();
+				stmt.executeUpdate(selectSplit);
+			} catch(SQLException e){
+				System.out.println(e.getMessage());
+			}
+		}
+	}
 }

@@ -6,12 +6,11 @@ import java.nio.charset.Charset;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.TreeMap;
 
 import javax.imageio.ImageIO;
 
-import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import javafx.application.Application;
 import javafx.embed.swing.SwingFXUtils;
@@ -22,13 +21,10 @@ import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.stage.Stage;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+
 import javafx.scene.image.WritableImage;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDate;
 
@@ -40,44 +36,50 @@ public class main extends Application {
 	static ArrayList<LocalDate> sortetDates = new ArrayList<>();
 	static ArrayList<Double> sortetCloseValue = new ArrayList<>();
 	static ArrayList<Double> sortetAvgCloseValue = new ArrayList<>();
-	
+
+	static TreeMap<LocalDate, Integer> splitCoeffecient = new TreeMap<LocalDate, Integer>();
+
 	static String aktie;
 
 	static Scanner sc = new Scanner(System.in);
+	static File file = new File("C:\\Users\\Maximilian Neuner\\Documents\\Java\\Aktienkurse-master\\bin\\AktienSave.txt");
 
 	public static void main(String[] args) throws MalformedURLException, JSONException, IOException, SQLException {
-		boolean ok = false;
-		System.out.println("Welche Aktie möchten sie bekommen? \n" + "tsla ... Tesla\n" + "AAPL ... Apple.");
-		aktie = sc.next();
 		final Connection connection = DatabaseManager.getInstance().getDatabaseConnection(3306, "aktien");
-		while (ok == false) {
-
-			System.out.println("Möchten sie die Datenbank updaten ...1 \noder den Chart Zeichnen ... 2");
-			int a = sc.nextInt();
-			if (a == 1) {
-				updateDatabase(connection, aktie);
-				ok = true;
-			}
-			if (a == 2) {
-
-				showChart(connection, aktie);
-				ok = true;
-			}
+		boolean ok = false;
+		
+		try {
+			 Scanner fileReader = new Scanner(file);
+			 while(fileReader.hasNextLine())
+			 {
+				 aktie = fileReader.nextLine();
+				 updateDatabase(connection, aktie);
+				 showChart(connection, aktie);
+				 clearLists();
+			 }
 		}
+		catch(Exception e)
+		{
+			e.getMessage();
+		}
+		
 		sc.close();
 	}
 
 	public static void updateDatabase(Connection connection, String aktie)
 			throws MalformedURLException, JSONException, IOException, SQLException {
-		APIService.getData(aktie, dates, closeValue);
+		System.out.println("Datenbank wird geupdated ...");
+		APIService.getData(aktie, dates, closeValue, splitCoeffecient);
 
 		for (int i = 0; i < closeValue.size(); i++) {
 			DatabaseManager.getInstance().insertIntoDatabase(connection, dates.get(i), closeValue.get(i), aktie);
 		}
+		DatabaseManager.calculateSplit(aktie, connection, splitCoeffecient);
 		System.out.println("Datenbank wurde erfolgreich updated.");
 	}
 
 	public static void showChart(Connection connection, String aktie) throws SQLException {
+		System.out.println("Chart wird in kürze gezeichnet ...");
 		DatabaseManager.selectALL(aktie, connection, sortetCloseValue, sortetDates);
 		DatabaseManager.selectAvg(aktie, connection, sortetAvgCloseValue, sortetDates);
 		for (int i = 0; i < sortetAvgCloseValue.size(); i++) {
@@ -109,6 +111,7 @@ public class main extends Application {
 	}
 
 	public void saveAsPng(Scene scene, String path) {
+		
 		WritableImage image = scene.snapshot(null);
 		File file = new File(path);
 		try {
@@ -117,7 +120,15 @@ public class main extends Application {
 			e.printStackTrace();
 		}
 	}
-	
+	public static void clearLists()
+	{
+		dates.clear();
+		closeValue.clear();
+		sortetDates.clear();
+		sortetCloseValue.clear();
+		sortetAvgCloseValue.clear();
+		splitCoeffecient.clear();
+	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
@@ -157,11 +168,12 @@ public class main extends Application {
 			}
 
 			lineChart.setCreateSymbols(false);
-			
 
 			primaryStage.setScene(scene);
 			primaryStage.show();
-			saveAsPng(scene, "C:\\Users\\Maximilian Neuner\\Documents\\chartImages\\chart"+aktie+".png");
+			LocalDate today = LocalDate.now();
+			saveAsPng(scene, "C:\\Users\\Maximilian Neuner\\Documents\\chartImages\\chart" + aktie + today+ ".png");
+			primaryStage.close();
 
 		} catch (Exception e) {
 			e.printStackTrace();

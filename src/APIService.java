@@ -5,6 +5,7 @@ import java.nio.charset.Charset;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.TreeMap;
 
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
@@ -13,7 +14,7 @@ import org.json.JSONObject;
 public class APIService {
 
 	public static void getData(String aktie, ArrayList<LocalDate> dates, ArrayList<Double> closeValue,
-			HashMap<LocalDate, Integer> splitCoeffecient) throws MalformedURLException, JSONException, IOException {
+			TreeMap<LocalDate, Integer> splitCoeffecient) throws MalformedURLException, JSONException, IOException {
 
 		double coefficient = 1.0;
 		String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=" + aktie
@@ -26,7 +27,7 @@ public class APIService {
 			closeValue.add(json.getJSONObject(LocalDate.parse((CharSequence) json.names().get(i)).toString())
 					.getDouble("4. close"));
 			if (json.getJSONObject(LocalDate.parse((CharSequence) json.names().get(i)).toString())
-					.getDouble("8. split coefficient") > coefficient) {
+					.getDouble("8. split coefficient") > 1.0) {
 				coefficient = json.getJSONObject(LocalDate.parse((CharSequence) json.names().get(i)).toString())
 						.getDouble("8. split coefficient");
 				splitCoeffecient.put(LocalDate.parse((CharSequence) json.names().get(i)), (int) coefficient);
