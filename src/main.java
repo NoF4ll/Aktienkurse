@@ -42,29 +42,16 @@ public class main extends Application {
 	static String aktie;
 
 	static Scanner sc = new Scanner(System.in);
-	static File file = new File("C:\\Users\\Maximilian Neuner\\Documents\\Java\\Aktienkurse-master\\bin\\AktienSave.txt");
+	static File file = new File(
+			"C:\\Users\\Maximilian Neuner\\Documents\\Java\\Aktienkurse-master\\bin\\AktienSave.txt");
 
 	public static void main(String[] args) throws MalformedURLException, JSONException, IOException, SQLException {
-		final Connection connection = DatabaseManager.getInstance().getDatabaseConnection(3306, "aktien");
+
 		boolean ok = false;
-		
-		try {
-			 Scanner fileReader = new Scanner(file);
-			 while(fileReader.hasNextLine())
-			 {
-				 aktie = fileReader.nextLine();
-				 updateDatabase(connection, aktie);
-				 showChart(connection, aktie);
-				 clearLists();
-			 }
-		}
-		catch(Exception e)
-		{
-			e.getMessage();
-		}
-		
-		sc.close();
+
+		Application.launch();
 	}
+
 
 	public static void updateDatabase(Connection connection, String aktie)
 			throws MalformedURLException, JSONException, IOException, SQLException {
@@ -85,7 +72,6 @@ public class main extends Application {
 		for (int i = 0; i < sortetAvgCloseValue.size(); i++) {
 			DatabaseManager.insertAVG(connection, aktie, sortetAvgCloseValue.get(i), sortetDates.get(i));
 		}
-		Application.launch();
 		System.out.println("Chart wurde erfolgreich gezeichnet!");
 	}
 
@@ -107,11 +93,12 @@ public class main extends Application {
 				sum = sum + sortetCloseValue.get(i);
 				sortetAvgCloseValue.add(sum / 200);
 			}
+
 		}
 	}
 
 	public void saveAsPng(Scene scene, String path) {
-		
+
 		WritableImage image = scene.snapshot(null);
 		File file = new File(path);
 		try {
@@ -120,8 +107,8 @@ public class main extends Application {
 			e.printStackTrace();
 		}
 	}
-	public static void clearLists()
-	{
+
+	public static void clearLists() {
 		dates.clear();
 		closeValue.clear();
 		sortetDates.clear();
@@ -132,52 +119,64 @@ public class main extends Application {
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-	public void start(Stage primaryStage) {
+	public void start(Stage primaryStage) throws SQLException {
+		final Connection connection = DatabaseManager.getInstance().getDatabaseConnection(3306, "aktien");
 		try {
-			final CategoryAxis xAxis = new CategoryAxis();
-			final NumberAxis yAxis = new NumberAxis();
-			xAxis.setLabel("Datum");
-			yAxis.setLabel("close-Wert");
+			Scanner fileReader = new Scanner(file);
+			while (fileReader.hasNextLine()) {
+				aktie = fileReader.nextLine();
+				updateDatabase(connection, aktie);
+				showChart(connection, aktie);
 
-			final LineChart<String, Number> lineChart = new LineChart<String, Number>(xAxis, yAxis);
-			lineChart.setTitle("Aktienkurs");
-			lineChart.setAnimated(false);
+				final CategoryAxis xAxis = new CategoryAxis();
+				final NumberAxis yAxis = new NumberAxis();
+				xAxis.setLabel("Datum");
+				yAxis.setLabel("close-Wert");
 
-			XYChart.Series<String, Number> tatsaechlich = new XYChart.Series();
-			tatsaechlich.setName("Close-Werte");
-			for (int i = 0; i < sortetCloseValue.size() - 1; i++) {
-				tatsaechlich.getData().add(new XYChart.Data(sortetDates.get(i).toString(), sortetCloseValue.get(i)));
+				final LineChart<String, Number> lineChart = new LineChart<String, Number>(xAxis, yAxis);
+				lineChart.setTitle("Aktienkurs");
+				lineChart.setAnimated(false);
+
+				XYChart.Series<String, Number> tatsaechlich = new XYChart.Series();
+				tatsaechlich.setName("Close-Werte");
+				for (int i = 0; i < sortetCloseValue.size() - 1; i++) {
+					tatsaechlich.getData()
+							.add(new XYChart.Data(sortetDates.get(i).toString(), sortetCloseValue.get(i)));
+				}
+
+				XYChart.Series<String, Number> durchschnitt = new XYChart.Series();
+				durchschnitt.setName("AVG Wert");
+				for (int i = 0; i < sortetAvgCloseValue.size() - 1; i++) {
+					durchschnitt.getData()
+							.add(new XYChart.Data(sortetDates.get(i).toString(), sortetAvgCloseValue.get(i)));
+				}
+				Scene scene = new Scene(lineChart, 800, 600);
+				lineChart.getData().add(tatsaechlich);
+				lineChart.getData().add(durchschnitt);
+
+				if (sortetCloseValue.get(sortetCloseValue.size() - 1) >= sortetAvgCloseValue
+						.get(sortetAvgCloseValue.size() - 1)) {
+					scene.getStylesheets().add("green.css");
+				}
+				if (sortetCloseValue.get(sortetCloseValue.size() - 1) < sortetAvgCloseValue
+						.get(sortetAvgCloseValue.size() - 1)) {
+					scene.getStylesheets().add("red.css");
+				}
+
+				lineChart.setCreateSymbols(false);
+
+				primaryStage.setScene(scene);
+				primaryStage.show();
+				LocalDate today = LocalDate.now();
+				saveAsPng(scene,
+						"C:\\Users\\Maximilian Neuner\\Documents\\chartImages\\chart" + aktie + today + ".png");
+				primaryStage.close();
+				clearLists();
 			}
-
-			XYChart.Series<String, Number> durchschnitt = new XYChart.Series();
-			durchschnitt.setName("AVG Wert");
-			for (int i = 0; i < sortetAvgCloseValue.size() - 1; i++) {
-				durchschnitt.getData().add(new XYChart.Data(sortetDates.get(i).toString(), sortetAvgCloseValue.get(i)));
-			}
-			Scene scene = new Scene(lineChart, 800, 600);
-			lineChart.getData().add(tatsaechlich);
-			lineChart.getData().add(durchschnitt);
-
-			if (sortetCloseValue.get(sortetCloseValue.size() - 1) >= sortetAvgCloseValue
-					.get(sortetAvgCloseValue.size() - 1)) {
-				scene.getStylesheets().add("green.css");
-			}
-			if (sortetCloseValue.get(sortetCloseValue.size() - 1) < sortetAvgCloseValue
-					.get(sortetAvgCloseValue.size() - 1)) {
-				scene.getStylesheets().add("red.css");
-			}
-
-			lineChart.setCreateSymbols(false);
-
-			primaryStage.setScene(scene);
-			primaryStage.show();
-			LocalDate today = LocalDate.now();
-			saveAsPng(scene, "C:\\Users\\Maximilian Neuner\\Documents\\chartImages\\chart" + aktie + today+ ".png");
-			primaryStage.close();
-
 		} catch (Exception e) {
-			e.printStackTrace();
+			e.getMessage();
 		}
+
 	}
 
 }
